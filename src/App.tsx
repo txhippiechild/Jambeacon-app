@@ -277,8 +277,8 @@ function BeaconScreen({ selected, setSelected, live, toggleLive }: { selected: n
       </article>
       <button className={cn("primary-button", live ? "orange-button" : "cyan-button")} onClick={toggleLive}>{live ? "⚡ BEACON LIVE — TAP TO TURN OFF" : "◎ LIGHT MY BEACON"}</button>
       <p className="privacy-note">Your exact address is never shown. JamBeacon displays only an intentionally shifted point inside an approximate five-mile area. Turn the Beacon off whenever you want to disappear from the map.</p>
-      <div className="membership-strip">ONE-TIME JAMBEACON ACCESS • $9.99 • BEACON INCLUDED</div>
-      <p className="membership-note">One app purchase keeps Beacon access available for as long as you use JamBeacon. Other players are not charged to see your signal.</p>
+      <div className="membership-strip">ONE-TIME APP PURCHASE • $9.99 • BEACON UNLOCKS NOW</div>
+      <p className="membership-note">Pay $9.99 once for the JamBeacon app and Beacon unlocks immediately. Turn it on or off whenever you want—there is no per-use Beacon charge and no recurring Beacon fee.</p>
     </section>
   );
 }
