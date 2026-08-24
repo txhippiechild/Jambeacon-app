@@ -57,11 +57,10 @@ const shopItems: ShopItem[] = [
 const shopCategories = Array.from(new Set(shopItems.map((item) => item.category)));
 
 const loops = [
-  { name: "Garage Rock", bpm: 110 },
-  { name: "Punk Rush", bpm: 150 },
-  { name: "Midnight Groove", bpm: 92 },
-  { name: "Desert Drive", bpm: 118 },
-  { name: "Slow Burn", bpm: 76 },
+  { name: "Texas Rock", bpm: 120, bars: 8, meter: "4/4", src: "/audio/loops/texas-rock-120bpm.mp3" },
+  { name: "Funky Road", bpm: 100, bars: 4, meter: "4/4", src: "/audio/loops/funky-road-100bpm.mp3" },
+  { name: "Hip-Hop Pocket", bpm: 90, bars: 4, meter: "4/4", src: "/audio/loops/hip-hop-pocket-90bpm.mp3" },
+  { name: "Odd-Time Breakbeat", bpm: 135, bars: 4, meter: "3/4", src: "/audio/loops/odd-time-breakbeat-135bpm.mp3" },
 ];
 
 const campaignActs = [
@@ -319,36 +318,43 @@ function JamScreen({ points, addPoints }: { points: number; addPoints: (points: 
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
-  const loopTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const loopAudioRef = useRef<HTMLAudioElement | null>(null);
+  const loopSourceRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const mixDestinationRef = useRef<MediaStreamAudioDestinationNode | null>(null);
 
   const stopLoop = () => {
-    if (loopTimerRef.current) clearInterval(loopTimerRef.current);
-    loopTimerRef.current = null;
+    const audio = loopAudioRef.current;
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+      audio.removeAttribute("src");
+      audio.load();
+    }
+    loopAudioRef.current = null;
+    loopSourceRef.current?.disconnect();
+    loopSourceRef.current = null;
+  };
+
+  const closeAudio = () => {
+    stopLoop();
+    mixDestinationRef.current = null;
     audioContextRef.current?.close().catch(() => undefined);
     audioContextRef.current = null;
   };
 
-  const drumHit = (context: AudioContext, beat: number) => {
-    const now = context.currentTime;
-    const osc = context.createOscillator();
-    const gain = context.createGain();
-    osc.type = beat % 4 === 0 ? "sine" : "square";
-    osc.frequency.setValueAtTime(beat % 4 === 0 ? 95 : 185, now);
-    osc.frequency.exponentialRampToValueAtTime(45, now + 0.09);
-    gain.gain.setValueAtTime(beat % 2 === 0 ? 0.14 : 0.055, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
-    osc.connect(gain).connect(context.destination);
-    osc.start(now); osc.stop(now + 0.11);
-  };
-
-  const startLoop = () => {
+  const startLoop = async (context: AudioContext, mixDestination: MediaStreamAudioDestinationNode) => {
     stopLoop();
-    const context = new AudioContext();
-    audioContextRef.current = context;
-    let beat = 0;
-    drumHit(context, beat);
-    const interval = Math.round(60000 / loops[loopIndex].bpm / 2);
-    loopTimerRef.current = setInterval(() => { beat += 1; drumHit(context, beat); }, interval);
+    const audio = new Audio(loops[loopIndex].src);
+    audio.loop = true;
+    audio.preload = "auto";
+    audio.volume = 0.86;
+    const source = context.createMediaElementSource(audio);
+    source.connect(context.destination);
+    source.connect(mixDestination);
+    loopAudioRef.current = audio;
+    loopSourceRef.current = source;
+    await context.resume();
+    await audio.play();
   };
 
   const startRecording = async () => {
@@ -360,7 +366,16 @@ function JamScreen({ points, addPoints }: { points: number; addPoints: (points: 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
       chunksRef.current = [];
-      const recorder = new MediaRecorder(stream);
+
+      const context = new AudioContext();
+      audioContextRef.current = context;
+      const mixDestination = context.createMediaStreamDestination();
+      mixDestinationRef.current = mixDestination;
+      context.createMediaStreamSource(stream).connect(mixDestination);
+
+      await startLoop(context, mixDestination);
+
+      const recorder = new MediaRecorder(mixDestination.stream);
       recorderRef.current = recorder;
       recorder.ondataavailable = (event) => event.data.size && chunksRef.current.push(event.data);
       recorder.onstop = () => {
@@ -369,27 +384,35 @@ function JamScreen({ points, addPoints }: { points: number; addPoints: (points: 
         setAudioUrl(URL.createObjectURL(blob));
         stream.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
-        setStatus("Take saved on this device. Listen, retake, or submit it.");
+        closeAudio();
+        setStatus("Take saved with the drum groove mixed in. Listen, retake, or submit it.");
       };
-      recorder.start(); startLoop(); setElapsed(0); setRecording(true); setSubmitted(false);
-      setStatus("Recording live — play your part.");
+      recorder.start();
+      setElapsed(0);
+      setRecording(true);
+      setSubmitted(false);
+      setStatus(`Recording live over ${loops[loopIndex].name} — play your part.`);
       timerRef.current = setInterval(() => setElapsed((value) => value + 1), 1000);
     } catch {
-      setStatus("Microphone permission was not granted. Allow microphone access and try again.");
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+      closeAudio();
+      setStatus("The loop could not start. Check audio permissions and try again.");
     }
   };
 
   const stopRecording = () => {
     if (recorderRef.current?.state === "recording") recorderRef.current.stop();
     if (timerRef.current) clearInterval(timerRef.current);
-    timerRef.current = null; stopLoop(); setRecording(false);
+    timerRef.current = null;
+    stopLoop();
+    setRecording(false);
   };
 
   useEffect(() => () => {
     if (timerRef.current) clearInterval(timerRef.current);
-    if (loopTimerRef.current) clearInterval(loopTimerRef.current);
     streamRef.current?.getTracks().forEach((track) => track.stop());
-    audioContextRef.current?.close().catch(() => undefined);
+    closeAudio();
   }, []);
 
   const submit = () => {
@@ -401,9 +424,9 @@ function JamScreen({ points, addPoints }: { points: number; addPoints: (points: 
   return (
     <section className="screen jam-screen">
       <div className="screen-kicker orange">ROAD TO ROCKMANIA</div>
-      <div className="challenge-head"><span>CHALLENGE {String(currentChallengeNumber).padStart(2, "0")} / 25</span><h1>{currentCampaignChallenge.title.toUpperCase()}</h1><p>{currentCampaignChallenge.story} {loops[loopIndex].name.toUpperCase()} • {loops[loopIndex].bpm} BPM</p></div>
+      <div className="challenge-head"><span>CHALLENGE {String(currentChallengeNumber).padStart(2, "0")} / 25</span><h1>{currentCampaignChallenge.title.toUpperCase()}</h1><p>{currentCampaignChallenge.story} {loops[loopIndex].name.toUpperCase()} • {loops[loopIndex].bars}-BAR {loops[loopIndex].meter} • {loops[loopIndex].bpm} BPM</p></div>
       <div className="loop-picker">
-        {loops.map((loop, index) => <button key={loop.name} className={loopIndex === index ? "active" : ""} onClick={() => setLoopIndex(index)} disabled={recording}><b>{index + 1}</b><span>{loop.name}<small>{loop.bpm} BPM</small></span></button>)}
+        {loops.map((loop, index) => <button key={loop.name} className={loopIndex === index ? "active" : ""} onClick={() => setLoopIndex(index)} disabled={recording}><b>{index + 1}</b><span>{loop.name}<small>{loop.bars}-BAR {loop.meter} • {loop.bpm} BPM</small></span></button>)}
       </div>
       <div className="record-panel">
         <Waveform active={recording} seed={loopIndex + elapsed} />
@@ -429,7 +452,7 @@ function JamScreen({ points, addPoints }: { points: number; addPoints: (points: 
           </article>)}
         </div>
       </div>
-      <p className="fine-print">Recorder files stay on this device in this build. Use headphones so the selected drum loop does not bleed into your microphone.</p>
+      <p className="fine-print">The selected CC0 groove is mixed into the take. Headphones help keep the drum track clean in the microphone.</p>
     </section>
   );
 }
@@ -532,7 +555,7 @@ export default function JamBeaconApp() {
         <div className="live-faces">{people.slice(0, 4).map((person) => <button key={person.id} onClick={() => { setSelectedPerson(person.id); setScreen("beacons"); }}><AvatarImage avatar={person.avatar} /><i className={person.tone} /></button>)}</div>
         <h2>5 musicians inside your privacy area</h2>
         <button onClick={() => setScreen("beacons")}>OPEN BEACON MAP →</button>
-        <div className="side-challenge"><small>NEXT CHALLENGE</small><b>FIRST SIGNAL</b><span>Garage Rock • 110 BPM</span><button onClick={() => setScreen("jams")}>ENTER COLLAB ROOM</button></div>
+        <div className="side-challenge"><small>NEXT CHALLENGE</small><b>FIRST SIGNAL</b><span>Texas Rock • 120 BPM</span><button onClick={() => setScreen("jams")}>ENTER COLLAB ROOM</button></div>
       </aside>
     </main>
   );
