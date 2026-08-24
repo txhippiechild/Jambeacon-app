@@ -1,11 +1,15 @@
-const CACHE_NAME = "jambeacon-avatar-v2";
+const CACHE_NAME = "jambeacon-avatar-v3";
 const APP_SHELL = [
   "/",
   "/manifest.webmanifest",
   "/jambeacon-icon.svg",
   "/avatar-male.png",
   "/avatar-female.png",
-  "/jam-chat-scene.png"
+  "/jam-chat-scene.png",
+  "/audio/loops/texas-rock-120bpm.mp3",
+  "/audio/loops/funky-road-100bpm.mp3",
+  "/audio/loops/hip-hop-pocket-90bpm.mp3",
+  "/audio/loops/odd-time-breakbeat-135bpm.mp3"
 ];
 
 self.addEventListener("install", (event) => {
