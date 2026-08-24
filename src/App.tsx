@@ -141,7 +141,7 @@ function cn(...values: Array<string | false | null | undefined>) {
 }
 
 function AvatarImage({ avatar = "male", className = "", alt = "JamBeacon musician avatar" }: { avatar?: string; className?: string; alt?: string }) {
-  const src = avatar === "female" ? "/avatar-female.png" : avatar === "tx-hippie-child" ? "/tx-hippie-child.png" : "/avatar-male.png";
+  const src = avatar === "female" ? "/avatar-female.png" : avatar === "tx-hippie-child" ? "/tx-hippie-child.webp" : "/avatar-male.png";
   return <img className={cn("avatar-art", avatar === "tx-hippie-child" && "host-avatar", className)} src={src} alt={alt} />;
 }
 
