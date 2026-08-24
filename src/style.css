@@ -110,6 +110,19 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--cyan); outl
 .orange-button { background: linear-gradient(135deg, #ff7422, #ff3c00); color: #fff; }
 .cyan-button { background: linear-gradient(135deg, #2be4ff, #04a4e8); }
 
+/* Texas Hippie Child host */
+.host-welcome { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 13px; align-items: center; margin: 0 0 14px; padding: 12px; border: 1px solid rgba(199,255,19,.4); border-radius: 12px; background: linear-gradient(135deg, rgba(155,67,255,.2), rgba(255,90,10,.1)), #0e1014; box-shadow: 0 10px 22px rgba(0,0,0,.26); }
+.host-welcome-art { height: 118px; overflow: hidden; border-radius: 9px; background: radial-gradient(circle at 50% 25%, rgba(20,205,240,.24), transparent 45%), #171a20; }
+.host-welcome-art .avatar-art { width: 100%; height: 100%; object-fit: contain; object-position: center bottom; filter: drop-shadow(0 7px 10px #000); }
+.host-welcome-copy { min-width: 0; }
+.host-welcome-copy > span { color: var(--lime); font-size: 9px; font-weight: 1000; letter-spacing: .14em; }
+.host-welcome-copy h2 { margin: 4px 0 1px; color: #fff; font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif; font-size: 28px; letter-spacing: .02em; }
+.host-welcome-copy strong { color: var(--orange); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+.host-welcome-copy p { margin: 6px 0 0; color: #c1c5cc; font-size: 10px; line-height: 1.45; }
+.host-welcome.compact { grid-template-columns: 76px minmax(0, 1fr); padding: 9px; }
+.host-welcome.compact .host-welcome-art { height: 82px; }
+.host-welcome.compact .host-welcome-copy h2 { font-size: 22px; }
+
 /* Avatar builder */
 .builder-screen { padding-inline: 10px; }
 .avatar-stage {
@@ -196,6 +209,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--cyan); outl
 .profile-identity p { margin: 5px 0 8px; color: var(--lime); font-size: 11px; font-weight: 900; letter-spacing: .08em; }
 .profile-identity p i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--lime); box-shadow: 0 0 9px var(--lime); }
 .profile-identity span { color: #cf9bff; border: 1px solid #6b299f; padding: 5px 8px; font-size: 9px; font-weight: 900; border-radius: 5px; }
+.profile-role { display: block; margin-top: 7px; color: #9fa4ad; font-size: 10px; line-height: 1.35; }
 .track-card { margin: 15px 0 11px; padding: 12px; border: 1px solid #373c45; background: #0c0e12; border-radius: 9px; display: grid; grid-template-columns: 40px 1fr; gap: 8px; }
 .track-card > div:first-child { grid-column: 1 / -1; display: flex; justify-content: space-between; font-size: 9px; letter-spacing: .09em; color: #b9bdc5; }
 .play-button { width: 38px; height: 38px; align-self: center; border-radius: 50%; background: #20242b; border: 1px solid #646a74; }

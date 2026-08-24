@@ -129,13 +129,34 @@ const campaignActs = [
 const currentChallengeNumber = 3;
 const currentCampaignChallenge = campaignActs[0].challenges[currentChallengeNumber - 1];
 
+const TX_HOST = {
+  name: "Tx Hippie Child",
+  brand: "Texas Hippie Child",
+  subName: "Guitar Gangsta",
+  role: "Guitar player from Spring, Texas",
+};
+
 function cn(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(" ");
 }
 
 function AvatarImage({ avatar = "male", className = "", alt = "JamBeacon musician avatar" }: { avatar?: string; className?: string; alt?: string }) {
-  const src = avatar === "female" ? "/avatar-female.png" : "/avatar-male.png";
-  return <img className={cn("avatar-art", className)} src={src} alt={alt} />;
+  const src = avatar === "female" ? "/avatar-female.png" : avatar === "tx-hippie-child" ? "/tx-hippie-child.png" : "/avatar-male.png";
+  return <img className={cn("avatar-art", avatar === "tx-hippie-child" && "host-avatar", className)} src={src} alt={alt} />;
+}
+
+function HostWelcome({ compact = false }: { compact?: boolean }) {
+  return (
+    <article className={cn("host-welcome", compact && "compact")}>
+      <div className="host-welcome-art"><AvatarImage avatar="tx-hippie-child" alt="Tx Hippie Child playing guitar" /></div>
+      <div className="host-welcome-copy">
+        <span>{compact ? "CAMPAIGN HOST" : "YOUR JAMBEACON HOST"}</span>
+        <h2>{TX_HOST.name}</h2>
+        <strong>{TX_HOST.subName}</strong>
+        <p>{TX_HOST.role}. I’m here to help turn your first signal into a real collaboration.</p>
+      </div>
+    </article>
+  );
 }
 
 function Waveform({ active = false, seed = 0 }: { active?: boolean; seed?: number }) {
@@ -206,6 +227,7 @@ function BuilderScreen({ base, setBase, hair, setHair, outfit, setOutfit, gear, 
   };
   return (
     <section className="screen builder-screen">
+      <HostWelcome />
       <div className="screen-kicker lime">BUILD YOUR ROCKSTAR</div>
       <div className="avatar-stage">
         <div className="stage-ring" />
@@ -231,18 +253,18 @@ function BuilderScreen({ base, setBase, hair, setHair, outfit, setOutfit, gear, 
   );
 }
 
-function ProfileScreen({ base, gear, edit }: { base: AvatarBase; gear: string; edit: () => void }) {
+function ProfileScreen({ gear, edit }: { gear: string; edit: () => void }) {
   return (
     <section className="screen profile-screen">
       <div className="profile-hero">
         <div className="profile-neon">LIVE<br />LOCAL</div>
-        <AvatarImage avatar={base === "Tempo" ? "female" : "male"} />
+        <AvatarImage avatar="tx-hippie-child" alt="Tx Hippie Child, Guitar Gangsta" />
         <button className="settings-button" onClick={edit} aria-label="Edit avatar">⚙</button>
       </div>
       <div className="profile-card">
         <div className="profile-identity">
-          <div className="mini-avatar"><AvatarImage avatar={base === "Tempo" ? "female" : "male"} /></div>
-          <div><h1>Texas Hippie Child</h1><p><i /> JAM NOW</p><span>🎸 {gear === "Drum Sticks" ? "DRUMS" : "GUITAR"}</span></div>
+          <div className="mini-avatar"><AvatarImage avatar="tx-hippie-child" alt="Tx Hippie Child" /></div>
+          <div><h1>{TX_HOST.name}</h1><p><i /> JAM NOW</p><span>🎸 {gear === "Drum Sticks" ? "DRUMS" : "GUITAR"} • {TX_HOST.subName}</span><small className="profile-role">{TX_HOST.role}</small></div>
         </div>
         <div className="track-card">
           <div><b>PROFILE TRACK</b><span>1:28</span></div>
@@ -296,7 +318,7 @@ function InboxScreen({ messages, sendMessage, openRoom }: { messages: JamMessage
       <div className="chat-thread">
         {messages.map((message) => (
           <div key={message.id} className={cn("message-row", message.mine && "mine")}>
-            <div className="chat-avatar"><AvatarImage avatar={message.mine ? "female" : "male"} /></div><p>{message.text}</p>
+            <div className="chat-avatar"><AvatarImage avatar={message.mine ? "female" : "tx-hippie-child"} alt={message.mine ? "JamBeacon musician" : "Tx Hippie Child"} /></div><p>{message.text}</p>
           </div>
         ))}
       </div>
@@ -424,6 +446,7 @@ function JamScreen({ points, addPoints }: { points: number; addPoints: (points: 
   return (
     <section className="screen jam-screen">
       <div className="screen-kicker orange">ROAD TO ROCKMANIA</div>
+      <HostWelcome compact />
       <div className="challenge-head"><span>CHALLENGE {String(currentChallengeNumber).padStart(2, "0")} / 25</span><h1>{currentCampaignChallenge.title.toUpperCase()}</h1><p>{currentCampaignChallenge.story} {loops[loopIndex].name.toUpperCase()} • {loops[loopIndex].bars}-BAR {loops[loopIndex].meter} • {loops[loopIndex].bpm} BPM</p></div>
       <div className="loop-picker">
         {loops.map((loop, index) => <button key={loop.name} className={loopIndex === index ? "active" : ""} onClick={() => setLoopIndex(index)} disabled={recording}><b>{index + 1}</b><span>{loop.name}<small>{loop.bars}-BAR {loop.meter} • {loop.bpm} BPM</small></span></button>)}
@@ -435,7 +458,7 @@ function JamScreen({ points, addPoints }: { points: number; addPoints: (points: 
         {audioUrl && <audio className="take-player" src={audioUrl} controls />}
         <div className="record-actions"><button onClick={() => { setAudioUrl(""); setElapsed(0); setSubmitted(false); setStatus("Retake cleared. You are ready for another one-take part."); }} disabled={!audioUrl}>RETAKE</button><button className="submit-track" onClick={submit} disabled={!audioUrl}>SUBMIT TRACK</button></div>
       </div>
-      <div className="vote-card"><span>SONG VOTE SHOWDOWN</span><div><div className="team-faces"><AvatarImage /><AvatarImage avatar="female" /></div><b>VS</b><div className="team-faces rival"><AvatarImage avatar="female" /><AvatarImage /></div></div></div>
+      <div className="vote-card"><span>SONG VOTE SHOWDOWN</span><div><div className="team-faces"><AvatarImage avatar="tx-hippie-child" alt="Tx Hippie Child" /><AvatarImage avatar="female" /></div><b>VS</b><div className="team-faces rival"><AvatarImage avatar="female" /><AvatarImage /></div></div></div>
       <div className={cn("care-package", submitted && "ready")}><span>▣</span><div><b>{submitted ? "CARE PACKAGE READY" : "CARE PACKAGE LOCKED"}</b><small>{submitted ? `+300 points • New gear inside • ${points} total` : "Submit the challenge to unlock it"}</small></div></div>
       <div className="campaign-story">
         <div className="campaign-story-head"><span>THE CAMPAIGN</span><h2>FROM FIRST SIGNAL TO ROCKNESS</h2><p>Twenty-five challenges turn one nearby hello into a finished collaboration, a full band, and a shot at the Rockmania stage.</p></div>
@@ -484,7 +507,7 @@ export default function JamBeaconApp() {
   const [selectedPerson, setSelectedPerson] = useState(1);
   const [notice, setNotice] = useState("");
   const [messages, setMessages] = useState<JamMessage[]>([
-    { id: 1, mine: false, text: "Want to build a track?" },
+    { id: 1, mine: false, text: "Tx Hippie Child here — welcome to JamBeacon. Want to build a track?" },
     { id: 2, mine: true, text: "Yeah—send the loop." },
     { id: 3, mine: false, text: "Jam accepted." },
   ]);
@@ -541,7 +564,7 @@ export default function JamBeaconApp() {
         <AppHeader points={points} onMenu={() => setScreen("builder")} />
         <div className="screen-scroll">
           {screen === "builder" && <BuilderScreen base={base} setBase={setBase} hair={hair} setHair={setHair} outfit={outfit} setOutfit={setOutfit} gear={gear} setGear={setGear} save={saveAvatar} />}
-          {screen === "profile" && <ProfileScreen base={base} gear={gear} edit={() => setScreen("builder")} />}
+          {screen === "profile" && <ProfileScreen gear={gear} edit={() => setScreen("builder")} />}
           {screen === "beacons" && <BeaconScreen selected={selectedPerson} setSelected={setSelectedPerson} live={beaconLive} toggleLive={() => { setBeaconLive((value) => !value); toast(beaconLive ? "Beacon turned off." : "Beacon live in your approximate area."); }} />}
           {screen === "inbox" && <InboxScreen messages={messages} sendMessage={(text) => setMessages((items) => [...items, { id: Date.now(), mine: true, text }])} openRoom={() => setScreen("jams")} />}
           {screen === "jams" && <JamScreen points={points} addPoints={addPoints} />}

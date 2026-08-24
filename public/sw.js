@@ -1,10 +1,11 @@
-const CACHE_NAME = "jambeacon-avatar-v3";
+const CACHE_NAME = "jambeacon-avatar-v4";
 const APP_SHELL = [
   "/",
   "/manifest.webmanifest",
   "/jambeacon-icon.svg",
   "/avatar-male.png",
   "/avatar-female.png",
+  "/tx-hippie-child.png",
   "/jam-chat-scene.png",
   "/audio/loops/texas-rock-120bpm.mp3",
   "/audio/loops/funky-road-100bpm.mp3",
