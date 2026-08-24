@@ -153,7 +153,8 @@ function HostWelcome({ compact = false }: { compact?: boolean }) {
         <span>{compact ? "CAMPAIGN HOST" : "YOUR JAMBEACON HOST"}</span>
         <h2>{TX_HOST.name}</h2>
         <strong>{TX_HOST.subName}</strong>
-        <p>{TX_HOST.role}. I’m here to help turn your first signal into a real collaboration.</p>
+        <p>{compact ? `${TX_HOST.role}. I’m here to turn your next signal into a real collaboration.` : `Welcome to JamBeacon. I’m ${TX_HOST.name}, your host. Start my three-week Texas Hippie Child Guitar Theory course, then find nearby musicians and build toward Rockness.`}</p>
+        {!compact && <div className="host-welcome-tags"><span>3-DAY FREE TRIAL</span><span>3-WEEK COURSE</span></div>}
       </div>
     </article>
   );
@@ -285,11 +286,19 @@ function BeaconScreen({ selected, setSelected, live, toggleLive }: { selected: n
       <div className="screen-kicker cyan">APPROXIMATE 5-MILE AREA</div>
       <div className="map-stage">
         <div className="map-grid" /><div className="you-marker">▲<small>YOU</small></div>
+        <div className="host-map-pin" aria-label="Tx Hippie Child, Guitar Gangsta, JamBeacon host">
+          <AvatarImage avatar="tx-hippie-child" alt="Tx Hippie Child playing guitar" />
+          <span><b>{TX_HOST.name}</b><small>{TX_HOST.subName} • HOST</small></span>
+        </div>
         {people.map((item, index) => (
           <button key={item.id} className={cn("map-avatar", `pos-${index + 1}`, `ring-${item.tone}`, selected === item.id && "selected")} onClick={() => setSelected(item.id)} aria-label={`View ${item.name}, ${item.role}`}>
             <AvatarImage avatar={item.avatar} />
           </button>
         ))}
+      </div>
+      <div className="map-reassurance">
+        <AvatarImage avatar="tx-hippie-child" alt="Tx Hippie Child host" />
+        <p><b>Musicians may be nearby.</b><span>Local beacons appear as players turn them on. Tx Hippie Child is here to welcome you while the next signal comes online.</span></p>
       </div>
       <article className="nearby-card cyan-card">
         <div className="nearby-avatar"><AvatarImage avatar={person.avatar} /></div>
