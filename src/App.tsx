@@ -141,7 +141,7 @@ function cn(...values: Array<string | false | null | undefined>) {
 }
 
 function AvatarImage({ avatar = "male", className = "", alt = "JamBeacon musician avatar" }: { avatar?: string; className?: string; alt?: string }) {
-  const src = avatar === "female" ? "/avatar-female.png" : avatar === "tx-hippie-child" ? "/tx-hippie-child.webp" : "/avatar-male.png";
+  const src = avatar === "female" ? "/avatar-female.webp" : avatar === "tx-hippie-child" ? "/tx-hippie-child.webp" : "/avatar-male.webp";
   return <img className={cn("avatar-art", avatar === "tx-hippie-child" && "host-avatar", className)} src={src} alt={alt} />;
 }
 
@@ -571,7 +571,7 @@ export default function JamBeaconApp() {
       </aside>
       <div className="phone-app">
         <AppHeader points={points} onMenu={() => setScreen("builder")} />
-        <div className="screen-scroll">
+        <div className={cn("screen-scroll", screen !== "builder" && "with-bottom-nav")}>
           {screen === "builder" && <BuilderScreen base={base} setBase={setBase} hair={hair} setHair={setHair} outfit={outfit} setOutfit={setOutfit} gear={gear} setGear={setGear} save={saveAvatar} />}
           {screen === "profile" && <ProfileScreen gear={gear} edit={() => setScreen("builder")} />}
           {screen === "beacons" && <BeaconScreen selected={selectedPerson} setSelected={setSelectedPerson} live={beaconLive} toggleLive={() => { setBeaconLive((value) => !value); toast(beaconLive ? "Beacon turned off." : "Beacon live in your approximate area."); }} />}
