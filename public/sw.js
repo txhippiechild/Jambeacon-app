@@ -1,16 +1,32 @@
-const CACHE_NAME = "jambeacon-rockmania-v12";
+const CACHE_NAME = "jambeacon-rockmania-v13";
 const APP_SHELL = [
   "/",
   "/app/",
   "/manifest.webmanifest",
   "/jambeacon-icon.svg",
-  "/avatar-male.webp",
-  "/avatar-female.webp",
-  "/avatar-road-dog.webp",
-  "/avatar-blue-king.webp",
-  "/avatar-neon-nova.webp",
-  "/avatar-thunder.webp",
   "/tx-hippie-child.webp",
+  "/avatars/ambilicous/original.webp",
+  "/avatars/ambilicous/neon-headliner.webp",
+  "/avatars/c-note/original.webp",
+  "/avatars/c-note/emerald-road-case.webp",
+  "/avatars/lee-fingerz/original.webp",
+  "/avatars/lee-fingerz/arena-voltage.webp",
+  "/avatars/beast/original.webp",
+  "/avatars/beast/jambeacon-shirt.webp",
+  "/avatars/beast/first-gig.webp",
+  "/avatars/beast/road-jacket.webp",
+  "/avatars/beast/neon-stage.webp",
+  "/avatars/beast/rockmania-suit.webp",
+  "/avatars/dirt-bike-joey/original.webp",
+  "/avatars/dirt-bike-joey/trail-rider.webp",
+  "/avatars/dirt-bike-joey/night-rider.webp",
+  "/avatars/dirt-bike-joey/festival-roadie.webp",
+  "/avatars/dirt-bike-joey/pit-crew-mechanic.webp",
+  "/avatars/dirt-bike-joey/ultimate-stage-rider.webp",
+  "/avatars/crew/big-show.webp",
+  "/avatars/crew/jrod.webp",
+  "/avatars/crew/democrat-pat.webp",
+  "/avatars/crew/hard-rock-harold-banjo-cutout.webp",
   "/jam-chat-scene.webp",
   "/audio/loops-v2/texas-thunder-120bpm.mp3",
   "/audio/loops-v2/lone-star-shuffle-105bpm.mp3",
@@ -49,3 +65,4 @@ self.addEventListener("fetch", (event) => {
       .catch(() => caches.match(event.request))
   );
 });
+
