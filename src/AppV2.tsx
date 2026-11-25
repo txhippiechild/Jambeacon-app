@@ -2,6 +2,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { listTakes, saveTake, deleteTake } from "./trackVault";
 
 type Screen = "builder" | "profile" | "beacons" | "jams" | "loops" | "inbox" | "shop";
 type Look = { hair: string; outfit: string; gear: string; accessories: Record<string,string>; backdrop: string };
@@ -159,12 +160,15 @@ function musicDB(): Promise<IDBDatabase> {
   return new Promise((resolve,reject)=>{const req=indexedDB.open("jambeacon-music",1);req.onupgradeneeded=()=>req.result.createObjectStore("tracks",{keyPath:"id"});req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});
 }
 async function readTracks(library:LocalTrack["library"]):Promise<LocalTrack[]> {
+ if(library==="shack")return (await listTakes()).map(t=>({id:"vault:"+t.id,name:t.title,blob:t.audio,created:t.createdAt,library}));
  const db=await musicDB();return new Promise((resolve,reject)=>{const tx=db.transaction("tracks","readonly"),req=tx.objectStore("tracks").getAll();req.onsuccess=()=>resolve((req.result as LocalTrack[]).filter(t=>t.library===library).sort((a,b)=>b.created-a.created));req.onerror=()=>reject(req.error);tx.oncomplete=()=>db.close();});
 }
 async function saveTrack(blob:Blob,name:string,library:LocalTrack["library"]){
- const old=await readTracks(library),db=await musicDB();return new Promise<void>((resolve,reject)=>{const tx=db.transaction("tracks","readwrite"),store=tx.objectStore("tracks");store.put({id:crypto.randomUUID(),name,blob,created:Date.now(),library});if(library==="shack")old.slice(19).forEach(t=>store.delete(t.id));tx.oncomplete=()=>{db.close();resolve();};tx.onerror=()=>{db.close();reject(tx.error);};});
+ if(library==="shack")return saveTake(name,blob);
+ if(!blob.size)throw Error("Empty audio file");
+ const db=await musicDB();return new Promise<void>((resolve,reject)=>{const tx=db.transaction("tracks","readwrite"),store=tx.objectStore("tracks");store.put({id:crypto.randomUUID(),name,blob,created:Date.now(),library});tx.oncomplete=()=>{db.close();resolve();};tx.onerror=()=>{db.close();reject(tx.error);};});
 }
-async function removeTrack(id:string){const db=await musicDB();return new Promise<void>((resolve,reject)=>{const tx=db.transaction("tracks","readwrite");tx.objectStore("tracks").delete(id);tx.oncomplete=()=>{db.close();resolve();};tx.onerror=()=>{db.close();reject(tx.error);};});}
+async function removeTrack(id:string){if(id.startsWith("vault:"))return deleteTake(Number(id.slice(6)));const db=await musicDB();return new Promise<void>((resolve,reject)=>{const tx=db.transaction("tracks","readwrite");tx.objectStore("tracks").delete(id);tx.oncomplete=()=>{db.close();resolve();};tx.onerror=()=>{db.close();reject(tx.error);};});}
 function TrackPlayer({track,remove}:{track:LocalTrack;remove:()=>void}){
  const [url,setUrl]=useState("");useEffect(()=>{const u=URL.createObjectURL(track.blob);setUrl(u);return()=>URL.revokeObjectURL(u);},[track.blob]);
  return <div className="simple-track"><b>{track.name}</b><audio src={url||undefined} controls preload="metadata"/><button onClick={remove}>Remove</button></div>;
@@ -183,7 +187,7 @@ function ProfileScreen({base,look,edit,shop,clearAccessory}:{base:AvatarBase;loo
 
 function BeaconScreen({ selected, setSelected, live, toggleLive, openChat, onUnlock }: { selected: number; setSelected: (id: number) => void; live: boolean; toggleLive: () => void; openChat: () => void; onUnlock: () => void }) {
   const person = people.find((item) => item.id === selected) ?? people[0];
-  return <section className="screen beacon-screen"><h1>Beacon</h1><small>Approximate area • Demo map</small><div className="map-stage"><div className="map-grid" /><div className="you-marker">▲<small>YOU</small></div><div className="host-map-pin"><AvatarImage avatar="tx-hippie-child" alt="Tx Hippie Child" /><span><b>{TX_HOST.name}</b><small>{TX_HOST.subName} • HOST</small></span></div>{people.map((item, index) => <button key={item.id} className={cn("map-avatar", `pos-${index + 1}`, `ring-${item.tone}`, selected === item.id && "selected")} onClick={() => setSelected(item.id)} aria-label={`View ${item.name}, ${item.role}`}><AvatarImage avatar={item.avatar} /></button>)}</div><article className="nearby-card cyan-card"><div className="nearby-avatar"><AvatarImage avatar={person.avatar} /></div><div><h2>{person.name}</h2><p>{person.role} • {person.miles}</p><Waveform active={live} seed={person.id} /></div><button className="chat-round" onClick={openChat} aria-label={`Message ${person.name}`}>▰</button></article><button className={cn("primary-button", live ? "orange-button" : "cyan-button")} onClick={toggleLive}>{live ? "Demo Beacon on — turn off" : "Light demo Beacon"}</button><p className="privacy-note">Demo only: live location sharing requires a connected service.</p></section>;
+  return <section className="screen beacon-screen"><h1>Beacon</h1><small>Demo map • Sample musicians only</small><div className="map-stage"><div className="map-grid" /><div className="you-marker">▲<small>YOU</small></div><div className="host-map-pin"><AvatarImage avatar="tx-hippie-child" alt="Tx Hippie Child" /><span><b>{TX_HOST.name}</b><small>{TX_HOST.subName} • HOST</small></span></div>{people.map((item, index) => <button key={item.id} className={cn("map-avatar", `pos-${index + 1}`, `ring-${item.tone}`, selected === item.id && "selected")} onClick={() => setSelected(item.id)} aria-label={`View ${item.name}, ${item.role}`}><AvatarImage avatar={item.avatar} /></button>)}</div><article className="nearby-card cyan-card"><div className="nearby-avatar"><AvatarImage avatar={person.avatar} /></div><div><h2>{person.name}</h2><p>{person.role} • {person.miles}</p><Waveform active={live} seed={person.id} /></div><button className="chat-round" onClick={openChat} aria-label={`Message ${person.name}`}>▰</button></article><button className={cn("primary-button", live ? "orange-button" : "cyan-button")} onClick={toggleLive}>{live ? "Demo Beacon on — turn off" : "Light demo Beacon"}</button><p className="privacy-note">Demo only: live location sharing requires a connected service.</p></section>;
 }
 
 type ForumThread={id:string;title:string;body:string;replies:string[]};
