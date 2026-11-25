@@ -1,16 +1,23 @@
-# JamBeacon Avatar App
+# JamBeacon — single app source
 
-The responsive website and installable mobile web app for JamBeacon.
+The unified JamBeacon source is in this repository, `txhippiechild/Jambeacon-app`, on `android-play-store-prep` until its Android and web builds are validated and promoted to `main`. Do not develop new features on the previous avatar-shop, simplified-layout, or prototype branches. They remain historical recovery references. The separate Jambeacon-live repository is an existing published static build, not an independent app to develop; do not replace it until release checks pass.
 
-Included working prototype flows:
+## Five main screens
 
-- Six-character rockstar builder with visible hair, outfit, and gear changes
-- Approximate five-mile Beacon map and privacy copy
-- Avatar jam chat and collab-room handoff
-- Twelve original JamBeacon loop arrangements with preview and microphone recording
-- Five-chapter magical-guitar Road to Rockmania campaign with interactive puzzles
-- Expanded avatar shop with fourteen original guitar finishes and device-local points
-- Tx Hippie Child / Guitar Gangsta host guidance throughout the experience
-- Repeated $9.99 one-time permanent-unlock offer and checkout handoff UI
+- Beacon: find musicians; current test map is explicitly a demo.
+- Jam Shack: record over grooves, play and save up to 20 takes in the existing local recording vault.
+- Loop Station: play, stop and repeat backing tracks. Existing built-in tracks plus an optional same-origin backing-tracks.json catalog.
+- Collab Room: forum-style discussions and replies; currently local preview only.
+- My Profile: artist name, bio, page color, avatar, music import and access to the avatar builder and shop.
 
-The merchant payment link, real accounts, server-side chat, persistent audio storage, ID verification, and production geolocation matching require production service connections. The app does not claim that clicking the checkout handoff has collected payment.
+The roster includes the recovered full-body JamBeacon character artwork, outfit variants, legacy starter avatars, per-character equipment and accessories, and optional user-imported avatar art. Purchases in the test build use local points only. Actual artwork alignment and persistence must be checked on Android devices.
+
+## Build and release
+
+- Web: npm install, npm run build.
+- Android: bash scripts/prepare-android.sh; see the Android test workflow and docs/GOOGLE-PLAY-RELEASE.md.
+- Release one app ID: com.jambeacon.app (verify availability in Play Console).
+- No payments are active. Intended membership is $9.99 per month with a three-day trial, pending Play Billing integration and verification.
+- Keep the current live site unchanged until the unified build is tested. No real accounts, live Beacon matching, shared forum, admin uploads, or cloud music storage have been confirmed; connect the existing backend and implement these before advertising them as working.
+
+Release acceptance requires a successful build, real-device testing, privacy and data-safety review, signed AAB, and Google Play testing/approval. Never put service credentials or signing keys in this public repository.
