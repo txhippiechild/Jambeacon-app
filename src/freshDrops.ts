@@ -39,3 +39,13 @@ export async function writeDrop(token:string,values:DropInput,existing?:Drop):Pr
 }
 export const dropPrice=(cents:number)=>new Intl.NumberFormat("en-US",{style:"currency",currency:"USD"}).format(cents/100);
 export const dropStatus=(d:Drop)=>d.state==="scheduled"?(Date.parse(d.release_at)<=Date.now()?"Live":"Scheduled"):d.state==="draft"?"Draft":"Archived";
+
+export async function uploadDropArtwork(token:string,file:File):Promise<string>{
+  if(!dropsConfigured)throw new Error("Backend not configured.");
+  const extensions:Record<string,string>={"image/png":"png","image/jpeg":"jpg","image/webp":"webp"};
+  const ext=extensions[file.type];if(!ext||file.size>5*1024*1024||!file.size)throw new Error("Choose a PNG, JPG or WebP image up to 5 MB.");
+  const path=crypto.randomUUID()+"."+ext;
+  const res=await fetch(base+"/storage/v1/object/jb-drop-art/"+path,{method:"POST",headers:{apikey:key,Authorization:"Bearer "+token,"Content-Type":file.type,"x-upsert":"false"},body:file});
+  if(!res.ok)throw new Error("Artwork upload failed ("+res.status+"). Check your session and storage configuration.");
+  return base+"/storage/v1/object/public/jb-drop-art/"+path;
+}
