@@ -58,7 +58,7 @@ create function public.jb_drop_stamp() returns trigger language plpgsql set sear
 begin
   -- Product identity and price of a released item must not be silently changed.
   if old.state = 'scheduled' and old.release_at <= now() and
-      (new.product_id <> old.product_id or new.price_cents <> old.price_cents or new.category <> old.category or new.release_at <> old.release_at) then
+      (new.product_id <> old.product_id or new.price_cents <> old.price_cents or new.category <> old.category or new.release_at <> old.release_at or new.state = 'draft') then
     raise exception 'Released product identity, price and release date are locked. Create a new drop instead.';
   end if;
   if old.state = 'archived' then raise exception 'Archived drops are immutable'; end if;
@@ -74,4 +74,9 @@ begin
 end $$;
 revoke all on function public.jb_drop_log() from public;
 create trigger jb_drop_log after insert or update on public.jb_weekly_drops for each row execute function public.jb_drop_log();
+-- Product artwork is public by URL; do not upload private or sensitive content.
+insert into storage.buckets (id,name,public,file_size_limit,allowed_mime_types)
+values ('jb-drop-art','jb-drop-art',true,5242880,array['image/png','image/jpeg','image/webp']);
+create policy jb_drop_art_insert on storage.objects for insert to authenticated
+with check (bucket_id='jb-drop-art' and public.jb_is_drop_admin());
 commit;
