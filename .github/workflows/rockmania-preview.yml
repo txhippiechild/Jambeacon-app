@@ -1,0 +1,23 @@
+name: Rockmania preview build
+on:
+  push:
+    branches: [road-to-rockmania]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: npm run build
+      - run: test -s dist/index.html && test -s dist/admin/index.html
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rockmania-web-preview
+          path: dist
