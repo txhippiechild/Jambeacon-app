@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { adminLogin, adminLogout, adminDrops, auditDrops, writeDrop, dropsConfigured, dropPrice, dropStatus, type Drop, type DropInput, type DropAudit } from "./freshDrops";
+import { adminLogin, adminLogout, adminDrops, auditDrops, writeDrop, uploadDropArtwork, dropsConfigured, dropPrice, dropStatus, type Drop, type DropInput, type DropAudit } from "./freshDrops";
 import "./freshDrops.css";
 
 const categories = [["instrument","Instruments"],["outfit","Outfits"],["accessory","Accessories"],["hair","Hairstyles"],["stage","Stage backgrounds"],["tracks","Backing tracks"]];
@@ -42,6 +42,8 @@ export default function DropAdmin(){
     <label>Price (USD)<input type="number" min=".01" max="999.99" step=".01" required value={price} disabled={!!locked} onChange={e=>setPrice(e.target.value)}/></label>
     <label>Play Billing product ID<input pattern="[a-z0-9][a-z0-9_.]{2,99}" maxLength={100} required value={form.product_id} disabled={!!locked} placeholder="drop_texas_thunder" onChange={e=>patch("product_id",e.target.value)}/></label>
     <label>Artwork URL<input maxLength={2048} value={form.image_url} placeholder="/avatars/item.webp or https://…" onChange={e=>patch("image_url",e.target.value)}/></label>
+    <label>Upload artwork (PNG, JPG or WebP, up to 5 MB)<input type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>{const file=e.target.files?.[0];e.target.value="";if(file)void run(async()=>{const url=await uploadDropArtwork(token,file);patch("image_url",url);setNotice("Artwork uploaded. Save the draft or schedule to attach it.");});}}/></label>
+    {form.image_url&&<small>Artwork is publicly accessible by its URL. Upload product art only.</small>}
     <label>Release date and time ({tz})<input type="datetime-local" required value={date} disabled={!!locked} onChange={e=>setDate(e.target.value)}/></label>
     <label className="drop-check"><input type="checkbox" checked={form.featured} onChange={e=>patch("featured",e.target.checked)}/> Feature on the Beacon home screen</label>
     <label className="drop-check"><input type="checkbox" checked={form.notify_members} onChange={e=>patch("notify_members",e.target.checked)}/> Request notification (delivery not connected)</label>
