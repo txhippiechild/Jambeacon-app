@@ -137,6 +137,96 @@ function AvatarImage({ avatar = "male", className = "", alt = "JamBeacon musicia
   return <img className={cn("avatar-art", avatar === "tx-hippie-child" && "host-avatar", className)} src={avatarImages[avatar]} alt={alt} />;
 }
 
+function PerformingAvatar({ src, alt, host = false }: { src: string; alt: string; host?: boolean }) {
+  const imageRef = useRef<HTMLImageElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const artwork = imageRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext("2d");
+    if (!artwork || !canvas || !context) return;
+
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let frame = 0;
+    let visible = false;
+    const restoreStill = () => {
+      canvas.style.visibility = "hidden";
+      artwork.style.opacity = "";
+    };
+
+    const start = () => {
+      cancelAnimationFrame(frame);
+      restoreStill();
+      if (!visible || document.hidden || reducedMotion.matches || !artwork.naturalWidth) return;
+
+      const scale = Math.min(1, 640 / Math.max(artwork.naturalWidth, artwork.naturalHeight));
+      const width = Math.round(artwork.naturalWidth * scale);
+      const height = Math.round(artwork.naturalHeight * scale);
+      canvas.width = width;
+      canvas.height = height;
+      const texture = document.createElement("canvas");
+      texture.width = width;
+      texture.height = height;
+      const source = texture.getContext("2d");
+      if (!source) return;
+      source.drawImage(artwork, 0, 0, width, height);
+      const startTime = performance.now();
+      let previousFrame = -Infinity;
+
+      const draw = (now: number) => {
+        frame = requestAnimationFrame(draw);
+        if (now - previousFrame < 30) return;
+        previousFrame = now;
+        const phase = (now - startTime) / 1000 * Math.PI * 2 / 4;
+        const lean = Math.sin(phase);
+        const nod = Math.sin(phase * 3) * 0.65 + Math.sin(phase * 2) * 0.35;
+        context.clearRect(0, 0, width, height);
+        const bands = Math.min(48, height);
+
+        for (let band = 0; band < bands; band++) {
+          const top = Math.round(height * band / bands);
+          const rows = Math.round(height * (band + 1) / bands) - top;
+          const position = band / bands;
+          // Blend the head motion into the shoulders, then taper the sway toward planted feet.
+          const torsoInfluence = Math.max(0, 1 - position / 0.86) ** 2;
+          const headInfluence = Math.max(0, 1 - position / 0.36) ** 2;
+          const shift = width * (0.032 * lean * torsoInfluence + 0.018 * nod * headInfluence);
+          const stretch = 1 - 0.032 * (1 + Math.sin(phase * 2)) * headInfluence;
+          const inset = (width - width * stretch) / 2;
+          context.drawImage(texture, 0, top, width, rows, shift + inset, top, width * stretch, rows);
+        }
+        canvas.style.visibility = "visible";
+        artwork.style.opacity = "0";
+      };
+      frame = requestAnimationFrame(draw);
+    };
+
+    const observer = new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      start();
+    });
+    observer.observe(artwork);
+    artwork.addEventListener("load", start);
+    document.addEventListener("visibilitychange", start);
+    reducedMotion.addEventListener("change", start);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+      artwork.removeEventListener("load", start);
+      document.removeEventListener("visibilitychange", start);
+      reducedMotion.removeEventListener("change", start);
+      restoreStill();
+    };
+  }, [src]);
+
+  const layers = <>
+    <img ref={imageRef} className="avatar-art" src={src} alt={alt} />
+    <canvas ref={canvasRef} className="avatar-art" aria-hidden="true" style={{ position: "absolute", ...(host ? { top: 0, left: 0 } : {}), visibility: "hidden", pointerEvents: "none" }} />
+  </>;
+  return host ? <span style={{ position: "relative", display: "inline-flex" }}>{layers}</span> : layers;
+}
+
 function HostWelcome({ compact = false }: { compact?: boolean }) {
   return <article className={cn("host-welcome", compact && "compact")}><div className="host-welcome-art"><AvatarImage avatar="tx-hippie-child" alt="Tx Hippie Child playing guitar" /></div><div className="host-welcome-copy"><span>{compact ? "YOUR CAMPAIGN GUIDE" : "YOUR JAMBEACON HOST"}</span><h2>{TX_HOST.name}</h2><strong>{TX_HOST.subName}</strong><p>{compact ? `${TX_HOST.role}. I’ll guide the magical-guitar run, the puzzles, and your trip to Rockmania.` : `Welcome to JamBeacon. I’m ${TX_HOST.name}, your host. I built this for musicians tired of playing alone. Find nearby players, make real sounds together, and learn my three-week Texas Hippie Child Guitar Theory course along the way.`}</p>{!compact && <div className="host-welcome-tags"><span>3-DAY FREE TRIAL</span><span>3-WEEK COURSE</span><span>SPRING, TEXAS</span></div>}</div></article>;
 }
@@ -148,7 +238,9 @@ function Waveform({ active = false, seed = 0 }: { active?: boolean; seed?: numbe
 
 function AvatarStageArt({ base, hair, outfit, gear, accessories = {}, backdrop = "", fullBodyId, customAvatarSrc, profile = false }: { base: AvatarBase; hair: string; outfit: string; gear: string; accessories?: Record<string,string>; backdrop?: string; fullBodyId?:string; customAvatarSrc?:string; profile?: boolean }) {
   const avatar = avatarCatalog[base];
-  return <div className={cn("avatar-look", `hair-${slug(hair)}`, `outfit-${slug(outfit)}`, profile && "profile-look")}><div className="outfit-effect" aria-hidden="true" /><div className={"avatar-backdrop backdrop-"+slug(backdrop)} aria-hidden="true"/><img className="avatar-art" src={customAvatarSrc||fullBodyLooks.find(item=>item.id===fullBodyId&&item.avatar===base)?.image||avatarImages[avatar.key]} alt={`${base}, ${avatar.role} avatar`}/><div className="hair-effect" aria-hidden="true"><i /><i /><i /><i /><i /></div><div className="gear-hologram"><span>{gearIcon(gear)}</span><small>{gear}</small></div><div className="appearance-hud"><span>{hair}</span><span>{outfit}</span>{Object.entries(accessories).map(([slot,name])=><span key={slot}>{name}</span>)}</div>{accessories.glasses && <span className="avatar-glasses" aria-label={accessories.glasses}><svg viewBox="0 0 100 35" width="100%" aria-hidden="true"><path d="M3 8 L16 5 L43 7 L47 12 L53 12 L57 7 L84 5 L97 8 L92 14 L86 28 L65 30 L57 24 L53 16 L47 16 L43 24 L35 30 L14 28 L8 14 Z" fill="#10141a" stroke="#c7cbd1" strokeWidth="2"/></svg></span>}</div>;
+  const artwork = customAvatarSrc || fullBodyLooks.find(item => item.id === fullBodyId && item.avatar === base)?.image || avatarImages[avatar.key];
+  const alt = `${base}, ${avatar.role} avatar`;
+  return <div className={cn("avatar-look", `hair-${slug(hair)}`, `outfit-${slug(outfit)}`, profile && "profile-look")}><div className="outfit-effect" aria-hidden="true" /><div className={"avatar-backdrop backdrop-"+slug(backdrop)} aria-hidden="true"/>{customAvatarSrc || accessories.glasses ? <img className="avatar-art" src={artwork} alt={alt} /> : <PerformingAvatar src={artwork} alt={alt} />}<div className="hair-effect" aria-hidden="true"><i /><i /><i /><i /><i /></div><div className="gear-hologram"><span>{gearIcon(gear)}</span><small>{gear}</small></div><div className="appearance-hud"><span>{hair}</span><span>{outfit}</span>{Object.entries(accessories).map(([slot,name])=><span key={slot}>{name}</span>)}</div>{accessories.glasses && <span className="avatar-glasses" aria-label={accessories.glasses}><svg viewBox="0 0 100 35" width="100%" aria-hidden="true"><path d="M3 8 L16 5 L43 7 L47 12 L53 12 L57 7 L84 5 L97 8 L92 14 L86 28 L65 30 L57 24 L53 16 L47 16 L43 24 L35 30 L14 28 L8 14 Z" fill="#10141a" stroke="#c7cbd1" strokeWidth="2"/></svg></span>}</div>;
 }
 
 function UnlockCard({ onOpen, compact = false }: { onOpen: () => void; compact?: boolean }) {
@@ -217,7 +309,7 @@ function ProfileScreen({base,look,edit,shop,clearAccessory}:{base:AvatarBase;loo
 
 function BeaconScreen({ selected, setSelected, live, toggleLive, openChat, onUnlock }: { selected: number; setSelected: (id: number) => void; live: boolean; toggleLive: () => void; openChat: () => void; onUnlock: () => void }) {
   const person = people.find((item) => item.id === selected) ?? people[0];
-  return <section className="screen beacon-screen"><h1>Beacon</h1><small>Demo map • Sample musicians only</small><div className="map-stage"><div className="map-grid" /><div className="you-marker">▲<small>YOU</small></div><div className="host-map-pin"><AvatarImage avatar="tx-hippie-child" alt="Tx Hippie Child" /><span><b>{TX_HOST.name}</b><small>{TX_HOST.subName} • HOST</small></span></div>{people.map((item, index) => <button key={item.id} className={cn("map-avatar", `pos-${index + 1}`, `ring-${item.tone}`, selected === item.id && "selected")} onClick={() => setSelected(item.id)} aria-label={`View ${item.name}, ${item.role}`}><AvatarImage avatar={item.avatar} /></button>)}</div><article className="nearby-card cyan-card"><div className="nearby-avatar"><AvatarImage avatar={person.avatar} /></div><div><h2>{person.name}</h2><p>{person.role} • {person.miles}</p><Waveform active={live} seed={person.id} /></div><button className="chat-round" onClick={openChat} aria-label={`Message ${person.name}`}>▰</button></article><button className={cn("primary-button", live ? "orange-button" : "cyan-button")} onClick={toggleLive}>{live ? "Demo Beacon on — turn off" : "Light demo Beacon"}</button><p className="privacy-note">Demo only: live location sharing requires a connected service.</p></section>;
+  return <section className="screen beacon-screen"><h1>Beacon</h1><small>Demo map • Sample musicians only</small><div className="map-stage"><div className="map-grid" /><div className="you-marker">▲<small>YOU</small></div><div className="host-map-pin"><PerformingAvatar host src={avatarImages["tx-hippie-child"]} alt="Tx Hippie Child" /><span><b>{TX_HOST.name}</b><small>{TX_HOST.subName} • HOST</small></span></div>{people.map((item, index) => <button key={item.id} className={cn("map-avatar", `pos-${index + 1}`, `ring-${item.tone}`, selected === item.id && "selected")} onClick={() => setSelected(item.id)} aria-label={`View ${item.name}, ${item.role}`}><AvatarImage avatar={item.avatar} /></button>)}</div><article className="nearby-card cyan-card"><div className="nearby-avatar"><AvatarImage avatar={person.avatar} /></div><div><h2>{person.name}</h2><p>{person.role} • {person.miles}</p><Waveform active={live} seed={person.id} /></div><button className="chat-round" onClick={openChat} aria-label={`Message ${person.name}`}>▰</button></article><button className={cn("primary-button", live ? "orange-button" : "cyan-button")} onClick={toggleLive}>{live ? "Demo Beacon on — turn off" : "Light demo Beacon"}</button><p className="privacy-note">Demo only: live location sharing requires a connected service.</p></section>;
 }
 
 type ForumThread={id:string;title:string;body:string;replies:string[]};
