@@ -2,7 +2,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import FreshDrops from "./FreshDrops";
+import FreshDrops from "./FreshDrops.tsx";
 import { listTakes, saveTake, deleteTake } from "./trackVault";
 
 type Screen = "builder" | "profile" | "beacons" | "jams" | "loops" | "inbox" | "shop";
