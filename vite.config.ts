@@ -7,5 +7,6 @@ export default defineConfig({
   build: {
     target: "es2022",
     sourcemap: false,
+    rollupOptions: { input: { app: "index.html", admin: "admin/index.html" } },
   },
 });
