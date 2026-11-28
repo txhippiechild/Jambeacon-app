@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { listTakes, saveTake, deleteTake } from "./trackVault";
 
 type Screen = "builder" | "profile" | "beacons" | "jams" | "loops" | "inbox" | "shop";
@@ -90,7 +90,19 @@ const fullBodyLooks: {id:string;avatar:AvatarBase;name:string;image:string;point
 ];
 
 
+// Artwork pieces cut from the approved Beast outfit images, with source masks
+// and destination transforms in the original 768 × 1152 character coordinates.
+type FittedPart = { source:string; slot:string; name:string; masks:{path:string;transform?:string}[]; viewBox:string };
+const fittedParts:Record<string,FittedPart> = {
+ "stage-glasses": {source:"/avatars/beast/jambeacon-shirt.webp",slot:"glasses",name:"Stage Glasses",viewBox:"242 55 118 58",masks:[{path:"M247 83 L257 78 L273 76 L280 70 L304 59 L321 57 L328 63 L351 63 L354 69 L328 74 L323 87 L313 92 L293 93 L285 84 L279 87 L273 101 L259 109 L252 103 Z",transform:"translate(5 -12)"}]},
+ "beast-neon-visor": {source:"/avatars/beast/neon-stage.webp",slot:"glasses",name:"Neon Stage Visor",viewBox:"250 55 110 65",masks:[{path:"M256 86 L269 77 L310 63 L335 58 L344 63 L358 80 L346 85 L315 88 L285 103 L271 115 L261 108 Z",transform:"translate(-3 -12)"}]},
+ "beast-jb-wristband": {source:"/avatars/beast/jambeacon-shirt.webp",slot:"wristband",name:"JamBeacon Wristband",viewBox:"218 435 86 90",masks:[{path:"M222 467 Q225 451 245 440 L260 444 L283 459 L298 473 L281 477 L269 488 L260 505 L263 515 L247 511 L232 493 Z",transform:"translate(3 5)"}]},
+ "beast-red-finish": {source:"/avatars/beast/jambeacon-shirt.webp",slot:"guitarFinish",name:"Red Crackle Guitar Finish",viewBox:"110 506 411 255",masks:[{path:"M118 565 L237 515 L252 532 L265 551 L246 582 L237 598 Z"},{path:"M243 609 L273 621 L278 646 L301 676 L323 641 L335 626 L351 629 L362 613 L383 597 L392 599 L282 748 Z",transform:"translate(0 -8)"},{path:"M431 519 L509 527 L468 549 L405 584 L393 577 L422 550 Z",transform:"translate(0 8)"}]},
+ "beast-neon-finish": {source:"/avatars/beast/neon-stage.webp",slot:"guitarFinish",name:"Neon Lightning Guitar Finish",viewBox:"76 505 445 270",masks:[{path:"M91 562 L234 518 L249 535 L264 553 L248 575 L239 599 Z",transform:"matrix(.84 0 0 1 42 0)"},{path:"M246 617 L265 627 L267 652 L288 679 L311 646 L321 623 L337 628 L357 611 L375 591 L386 598 L264 753 Z",transform:"matrix(.9 0 0 .94 45 31)"},{path:"M430 522 L509 523 L469 548 L405 579 L393 572 L421 549 Z",transform:"translate(0 12)"}]}
+};
+const fittedShopItems:ShopItem[]=Object.entries(fittedParts).filter(([id])=>id!=="stage-glasses").map(([id,part])=>({id,name:part.name,kind:part.slot==="guitarFinish"?"Fitted guitar finish":"Fitted accessory",icon:"✦",points:part.slot==="guitarFinish"?250:100,tone:"cyan",category:"FITTED CHARACTER PARTS",description:"Extracted from Beast's existing costume artwork. Fits his original pose.",unlock:"Equip on Beast's original look"}));
 const shopItems: ShopItem[] = [
+ ...fittedShopItems,
  ...fullBodyLooks.map(item=>({...item,avatar:undefined,fullBody:item.avatar,kind:"Full-body look",icon:"✦",category:"CHARACTER OUTFITS",unlock:"Equip outfit"})),
   {id:"stage-glasses",name:"Stage Glasses",kind:"Avatar accessory",icon:"🕶",points:100,tone:"cyan",category:"STYLE & GEAR",description:"Stage shades.",unlock:"Test points item"},
   ...characterItems,
@@ -150,18 +162,27 @@ function lookImage(base:AvatarBase,look:Look) {
   return look.customAvatarSrc || fullBodyLooks.find(item=>item.id===look.fullBodyId&&item.avatar===base)?.image || avatarImages[avatarCatalog[base].key];
 }
 function glassesFit(base:AvatarBase,look:Look) {
-  return base==="Beast" && !look.customAvatarSrc && (!look.fullBodyId || look.fullBodyId==="beast-original");
+ return base==="Beast"&&!look.customAvatarSrc&&(!look.fullBodyId||look.fullBodyId==="beast-original");
 }
 function fittedOutfit(item:ShopItem,base:AvatarBase) {
-  return item.id==="road-jacket" ? fullBodyLooks.find(l=>l.id==="beast-road-jacket"&&l.avatar===base) : undefined;
+ return item.id==="road-jacket"?fullBodyLooks.find(l=>l.id==="beast-road-jacket"&&l.avatar===base):undefined;
 }
 function canEquip(item:ShopItem,base:AvatarBase,look:Look) {
-  return !!(item.avatar || item.fullBody===base || fittedOutfit(item,base) || (item.id==="stage-glasses"&&glassesFit(base,look)) || item.kind.includes("backdrop") || item.kind==="Final stage");
+ return !!(item.avatar||item.fullBody===base||fittedOutfit(item,base)||(fittedParts[item.id]&&glassesFit(base,look))||item.kind.includes("backdrop")||item.kind==="Final stage");
 }
-function AvatarStageArt({base, profile=false,...look}:Look & {base:AvatarBase;profile?:boolean}) {
-  const src=lookImage(base,look);
-  const glasses=!!look.accessories?.glasses && glassesFit(base,look);
-  return <div className={cn("avatar-look",profile&&"profile-look")}><div className={"avatar-backdrop backdrop-"+slug(look.backdrop||"")} aria-hidden="true"/><div style={{position:"absolute",inset:"0",zIndex:2,display:"flex",alignItems:"center",justifyContent:"center",pointerEvents:"none"}}>{glasses?<svg viewBox="0 0 768 1152" style={{width:"100%",height:"100%",filter:"drop-shadow(0 12px 15px #0008)"}} role="img" aria-label={base+" wearing Stage Glasses"}><image href={src} width="768" height="1152"/><g transform="translate(292 80) rotate(-18)"><path d="M-29 -5 L-9 -7 Q-4 -6 -3 -1 L3 -1 Q5 -7 11 -7 L29 -6 L29 1 L25 2 Q24 13 14 13 Q5 13 3 4 L-3 4 Q-5 13 -15 13 Q-25 13 -26 2 L-29 1Z" fill="#101820" stroke="#b8bdc7" strokeWidth="1.8"/><path d="M29 -4 L52 -7" stroke="#30333a" strokeWidth="3" strokeLinecap="round"/><path d="M-23 -3 L-12 -4 M9 -3 L21 -4" stroke="#687d8e" strokeWidth="1.4" strokeLinecap="round"/></g></svg>:<img src={src} alt={base+" avatar"} style={{width:"100%",height:"100%",objectFit:"contain",filter:"drop-shadow(0 12px 15px #0008)"}}/>}</div></div>;
+function partForValue(value:string|undefined) {
+ return Object.entries(fittedParts).find(([id,p])=>value===id||value===p.name)?.[0];
+}
+function PartArt({id,thumbnail=false}:{id:string;thumbnail?:boolean}){
+ const uid=useId().replace(/[^a-zA-Z0-9_-]/g,"");
+ const part=fittedParts[id]; if(!part)return null;
+ const layers=part.masks.map((m,i)=><g key={i} transform={thumbnail?undefined:m.transform}><clipPath id={uid+"clip"+i} clipPathUnits="userSpaceOnUse"><path d={m.path}/></clipPath><image href={part.source} width="768" height="1152" clipPath={"url(#"+uid+"clip"+i+")"}/></g>);
+ return thumbnail?<svg viewBox={part.viewBox} style={{width:"100%",height:"100%"}} role="img" aria-label={part.name}>{layers}</svg>:<g data-fitted-part={id}>{layers}</g>;
+}
+function AvatarStageArt({base,profile=false,...look}:Look&{base:AvatarBase;profile?:boolean}){
+ const src=lookImage(base,look);
+ const parts=glassesFit(base,look)?["guitarFinish","wristband","glasses"].map(slot=>partForValue(look.accessories?.[slot])).filter((id):id is string=>!!id):[];
+ return <div className={cn("avatar-look",profile&&"profile-look")}><div className={"avatar-backdrop backdrop-"+slug(look.backdrop||"")} aria-hidden="true"/><div style={{position:"absolute",inset:"0",zIndex:2,display:"flex",alignItems:"center",justifyContent:"center",pointerEvents:"none"}}>{parts.length?<svg viewBox="0 0 768 1152" style={{width:"100%",height:"100%",filter:"drop-shadow(0 12px 15px #0008)"}} role="img" aria-label={base+" fitted avatar"}><image href={src} width="768" height="1152"/>{parts.map(id=><PartArt id={id} key={id}/>)}</svg>:<img src={src} alt={base+" avatar"} style={{width:"100%",height:"100%",objectFit:"contain",filter:"drop-shadow(0 12px 15px #0008)"}}/>}</div></div>;
 }
 
 function UnlockCard({ onOpen, compact = false }: { onOpen: () => void; compact?: boolean }) {
@@ -278,11 +299,11 @@ function JamScreen({ points, addPoints, campaignProgress, setCampaignProgress, o
 
 function ShopScreen({ points, spend, owns, base, look }: { points: number; spend: (item: ShopItem) => void; owns: (item: ShopItem)=>boolean; base:AvatarBase; look:Look }) {
   const [preview,setPreview]=useState<ShopItem|null>(null);
-  useEffect(()=>setPreview(null),[base,look.fullBodyId,look.backdrop,look.customAvatarSrc,look.accessories?.glasses]);
+  useEffect(()=>setPreview(null),[base,look.fullBodyId,look.backdrop,look.customAvatarSrc,look.accessories?.glasses,look.accessories?.wristband,look.accessories?.guitarFinish]);
   const fit=preview&&(preview.fullBody===base?fullBodyLooks.find(l=>l.id===preview.id):fittedOutfit(preview,base));
   const previewBase=preview?.avatar||base;
-  const previewLook:Look=preview?.avatar?starterLook:fit?{...look,fullBodyId:fit.id,outfit:fit.name,customAvatarSrc:""}:preview?.id==="stage-glasses"?{...look,accessories:{...look.accessories,glasses:preview.name}}:preview&&(preview.kind.includes("backdrop")||preview.kind==="Final stage")?{...look,backdrop:preview.name}:look;
-  return <section className="screen shop-screen"><div className="shop-title"><span>🛍</span><h1>AVATAR SHOP</h1><b>{points.toLocaleString()} PTS ★</b></div><div style={{position:"sticky",top:0,zIndex:9,background:"#101318",padding:"6px 0 8px"}}><div className="avatar-stage" style={{position:"relative",height:240,minHeight:240,marginBottom:4}}><AvatarStageArt base={previewBase} {...previewLook}/></div><p style={{textAlign:"center",margin:"4px 0"}}>{preview?"Trying on "+preview.name:"Equipped look · "+base} {preview&&<button onClick={()=>setPreview(null)}>Cancel preview</button>}</p></div><div className="shop-list">{shopCategories.map((category) => <div className="shop-category" key={category}><div className="shop-category-head"><b>{category}</b><span>{shopItems.filter((item) => item.category === category && (!item.fullBody || item.fullBody===base)).length} ITEMS</span></div>{shopItems.filter((item) => item.category === category && (!item.fullBody || item.fullBody===base)).map((item, index) => <article key={item.id} className={cn("shop-item", `${item.tone}-card`)}><div className={cn("shop-art", item.category === "GUITAR VAULT" && "guitar-art", `skin-${index % 6}`)}>{item.image ? <img src={item.image} alt={item.name} style={{width:"100%",height:"100%",objectFit:"contain"}}/> : item.avatar ? <AvatarImage avatar={avatarCatalog[item.avatar].key} alt={item.name} /> : <span>{item.icon}</span>}</div><div><small>{item.kind}</small><h2>{item.name}</h2><div className="shop-meta"><strong>{item.points} PTS</strong></div><button onClick={()=>setPreview(item)} disabled={!canEquip(item,base,look)}>Try on</button><button onClick={() => {spend(item);setPreview(null);}} disabled={!canEquip(item,base,look)||(!owns(item)&&points<item.points)}>{!canEquip(item,base,look)?(owns(item)?"Owned · fitting pending":"Fitted artwork pending"):owns(item)?"Equip":points<item.points?`${item.points-points} more pts`:item.avatar?"Buy character":"Buy & equip"}</button></div></article>)}</div>)}</div></section>;
+  const previewLook:Look=preview?.avatar?starterLook:fit?{...look,fullBodyId:fit.id,outfit:fit.name,customAvatarSrc:""}:preview&&fittedParts[preview.id]?{...look,accessories:{...look.accessories,[fittedParts[preview.id].slot]:preview.name}}:preview&&(preview.kind.includes("backdrop")||preview.kind==="Final stage")?{...look,backdrop:preview.name}:look;
+  return <section className="screen shop-screen"><div className="shop-title"><span>🛍</span><h1>AVATAR SHOP</h1><b>{points.toLocaleString()} PTS ★</b></div><div style={{position:"sticky",top:0,zIndex:9,background:"#101318",padding:"6px 0 8px"}}><div className="avatar-stage" style={{position:"relative",height:240,minHeight:240,marginBottom:4}}><AvatarStageArt base={previewBase} {...previewLook}/></div><p style={{textAlign:"center",margin:"4px 0"}}>{preview?"Trying on "+preview.name:"Equipped look · "+base} {preview&&<button onClick={()=>setPreview(null)}>Cancel preview</button>}</p></div><div className="shop-list">{shopCategories.map((category) => <div className="shop-category" key={category}><div className="shop-category-head"><b>{category}</b><span>{shopItems.filter((item) => item.category === category && (!item.fullBody || item.fullBody===base)).length} ITEMS</span></div>{shopItems.filter((item) => item.category === category && (!item.fullBody || item.fullBody===base)).map((item, index) => <article key={item.id} className={cn("shop-item", `${item.tone}-card`)}><div className={cn("shop-art", item.category === "GUITAR VAULT" && "guitar-art", `skin-${index % 6}`)}>{fittedParts[item.id]?<PartArt id={item.id} thumbnail/>:item.image ? <img src={item.image} alt={item.name} style={{width:"100%",height:"100%",objectFit:"contain"}}/> : item.avatar ? <AvatarImage avatar={avatarCatalog[item.avatar].key} alt={item.name} /> : <span>{item.icon}</span>}</div><div><small>{item.kind}</small><h2>{item.name}</h2><div className="shop-meta"><strong>{item.points} PTS</strong></div><button onClick={()=>setPreview(item)} disabled={!canEquip(item,base,look)}>Try on</button><button onClick={() => {spend(item);setPreview(null);}} disabled={!canEquip(item,base,look)||(!owns(item)&&points<item.points)}>{!canEquip(item,base,look)?(owns(item)?"Owned · fitting pending":"Fitted artwork pending"):owns(item)?"Equip":points<item.points?`${item.points-points} more pts`:item.avatar?"Buy character":"Buy & equip"}</button></div></article>)}</div>)}</div></section>;
 }
 
 export default function JamBeaconApp(){
@@ -302,7 +323,7 @@ export default function JamBeaconApp(){
   if(item.fullBody){if(item.fullBody!==base)return;changeLook({fullBodyId:item.id,outfit:item.name,customAvatarSrc:""});}
   else if(fittedOutfit(item,base)){const fit=fittedOutfit(item,base)!;changeLook({outfit:fit.name,fullBodyId:fit.id,customAvatarSrc:""});}
   else if(item.kind.includes("backdrop")||item.kind==="Final stage")changeLook({backdrop:item.name});
-  else if(/accessory/i.test(item.kind)&&!/mic/i.test(item.id)){const slot=/glass/i.test(item.name)?"glasses":item.id;changeLook({accessories:{...look.accessories,[slot]:item.name}});}
+  else if(fittedParts[item.id]){const slot=fittedParts[item.id].slot;changeLook({accessories:{...look.accessories,[slot]:item.name}});}
   else changeLook({gear:item.name});
   toast(item.name+" equipped.");
  };
