@@ -1,4 +1,4 @@
-name: Android test build
+name: JamBeacon mobile test builds
 
 on:
   push:
@@ -57,5 +57,35 @@ jobs:
           path: |
             android/app/build/outputs/apk/debug/*.apk
             android/app/build/outputs/bundle/release/*.aab
+          if-no-files-found: error
+          retention-days: 14
+
+  ios:
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare iOS project
+        run: |
+          npm install --no-audit --no-fund
+          npm install --no-save --no-audit --no-fund @capacitor/core@8 @capacitor/cli@8 @capacitor/ios@8
+          npm run build
+          npx cap add ios --packagemanager SPM
+          npx cap sync ios
+          /usr/libexec/PlistBuddy -c 'Add :NSMicrophoneUsageDescription string JamBeacon uses your microphone to record your Jam Shack takes.' ios/App/App/Info.plist
+      - name: Build for the iPhone simulator
+        run: |
+          xcodebuild -project ios/App/App.xcodeproj -scheme App \
+            -configuration Debug -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath ios-build CODE_SIGNING_ALLOWED=NO build
+      - name: Package simulator app
+        run: ditto -c -k --keepParent ios-build/Build/Products/Debug-iphonesimulator/App.app JamBeacon-iOS-Simulator.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jambeacon-ios-simulator
+          path: JamBeacon-iOS-Simulator.zip
           if-no-files-found: error
           retention-days: 14
